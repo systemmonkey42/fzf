@@ -165,6 +165,7 @@ __fzf_generic_path_completion() {
         leftover=${leftover/#\/}
         [ -z "$dir" ] && dir='.'
         [ "$dir" != "/" ] && dir="${dir/%\//}"
+		cursor_save __fzf_pos
         matches=$(eval "$1 $(printf %q "$dir")" | FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} --reverse $FZF_DEFAULT_OPTS $FZF_COMPLETION_OPTS $2" __fzf_comprun "$4" -q "$leftover" | while read -r item; do
           printf "%q$3 " "$item"
         done)
@@ -176,6 +177,7 @@ __fzf_generic_path_completion() {
           COMPREPLY=( "$cur" )
         fi
         printf '\e[5n'
+		cursor_restore __fzf_pos
         return 0
       fi
       dir=$(dirname "$dir")
@@ -221,8 +223,12 @@ _fzf_complete() {
   if [[ "$cur" == *"$trigger" ]]; then
     cur=${cur:0:${#cur}-${#trigger}}
 
+	cursor_save __fzf_pos
     selected=$(FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-40%} --reverse $FZF_DEFAULT_OPTS $FZF_COMPLETION_OPTS $str_arg" __fzf_comprun "${rest[0]}" "${args[@]}" -q "$cur" | $post | tr '\n' ' ')
     selected=${selected% } # Strip trailing space not to repeat "-o nospace"
+    printf '\e[5n'
+	cursor_restore __fzf_pos
+
     if [ -n "$selected" ]; then
       COMPREPLY=("$selected")
     else
@@ -252,9 +258,11 @@ _fzf_complete_kill() {
   [ -n "${COMP_WORDS[COMP_CWORD]}" ] && return 1
 
   local selected
+  cursor_save __fzf_pos
   selected=$(command ps -ef | sed 1d | FZF_DEFAULT_OPTS="--height ${FZF_TMUX_HEIGHT:-50%} --min-height 15 --reverse $FZF_DEFAULT_OPTS $FZF_COMPLETION_OPTS --preview 'echo {}' --preview-window down:3:wrap" __fzf_comprun "kill" -m | awk '{print $2}' | tr '\n' ' ')
   selected=${selected% }
   printf '\e[5n'
+  cursor_restore __fzf_pos
 
   if [ -n "$selected" ]; then
     COMPREPLY=( "$selected" )
